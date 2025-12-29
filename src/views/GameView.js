@@ -18,8 +18,8 @@ export class GameView {
                 <button id="remove-player-midgame-btn" class="utility-btn">- Player</button>
              </div>
              <div>
-                <button id="prev-round-btn" class="utility-btn">&lt; Prev</button>
-                <button id="next-round-btn" class="utility-btn">Next &gt;</button>
+                <button id="prev-round-btn" class="utility-btn" ${this.game.round === 'Jeopardy' ? 'disabled' : ''}>&lt; Prev</button>
+                <button id="next-round-btn" class="utility-btn" ${this.game.round === 'Final' ? 'disabled' : ''}>Next &gt;</button>
              </div>
         </div>
 
