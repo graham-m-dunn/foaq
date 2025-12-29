@@ -67,23 +67,16 @@ export class GameView {
         return this.game.players.map(p => {
             const hasAttempted = this.game.hasPlayerAttempted(p.id);
 
-            // Show action buttons logic:
-            // Normal: Clue Active AND Not Attempted
-            // Final/DD logic: Always show if "Clue Active" (which is true locally for wager)
-            // Actually per user requirement: "along with the correct/incorrect buttons"
-            // If Final Jeopardy: Always show buttons (allows recording result after inputs)
-            // If Daily Double: Show buttons if clue active.
+            // Buttons always show in Final Jeopardy if not attempted, or if generic active
+            const showButtons = (isClueActive || isFinal) && !hasAttempted;
 
-            let showButtons = (isClueActive || isFinal) && !hasAttempted;
-
-            // Calculate Max Wager
+            // Max Wager Logic
             const roundMax = this.game.getRoundMax();
-            // Logic: If score < roundMax, play can bet up to roundMax. Else up to score.
             const limit = p.score < roundMax ? roundMax : p.score;
             const placeholder = isFinal ? 'Wager' : `Max: $${limit}`;
 
             return `
-      <div class="player-card ${showButtons ? 'show-actions' : ''} ${showWager ? 'show-wager' : ''}" data-id="${p.id}">
+      <div class="player-card ${showButtons ? 'show-actions' : ''} ${showWager && !hasAttempted ? 'show-wager' : ''}" data-id="${p.id}">
         <div class="player-name">${p.name}</div>
         <div class="player-score ${p.score < 0 ? 'negative' : ''}">$${p.score}</div>
         
@@ -133,9 +126,8 @@ export class GameView {
                     this.isDailyDouble = true;
                     this._activateClue(0); // Value 0 because user enters wager
 
-                    // Mobile vibration feedback
                     if (navigator.vibrate) navigator.vibrate(50);
-                }, 600); // 600ms threshold
+                }, 600);
             };
 
             const cancelPress = () => {
@@ -222,22 +214,47 @@ export class GameView {
             const input = this.rootElement.querySelector(`.wager-input[data-id="${playerId}"]`);
             if (input && input.value !== '') {
                 points = parseInt(input.value);
-
-                // Basic Validation
-                const maxRound = this.game.getRoundMax();
-                // In final jeopardy, max is just current score (if positive)
-                // But DD max is score vs round max.
-                // Just accept input for now as "Trust User" logic is clearer than strict blocking without toast UI.
             } else {
                 points = 0;
             }
-            // Set temp clue value
             this.game.setClueValue(points);
         }
 
         if (this.game.hasPlayerAttempted(playerId)) return;
         this.game.updateScore(playerId, correct);
 
-        this.refresh();
+        // UI Handling
+        if (this.isDailyDouble) {
+            // Daily Double: Complete Reset
+            this.isDailyDouble = false;
+            this.selectedScoreValue = null;
+            this.game.setClueValue(0);
+            this.render();
+        }
+        else if (this.game.round === 'Final') {
+            // Final: Partial update to preserve other inputs
+            this._updateCardDOM(playerId);
+        }
+        else {
+            // Normal: Partial update to hide buttons
+            this._updateCardDOM(playerId);
+        }
+    }
+
+    _updateCardDOM(playerId) {
+        const card = this.rootElement.querySelector(`.player-card[data-id="${playerId}"]`);
+        if (!card) return;
+
+        const player = this.game.players.find(p => p.id === playerId);
+
+        // Update Score
+        const scoreEl = card.querySelector('.player-score');
+        scoreEl.textContent = `$${player.score}`;
+        if (player.score < 0) scoreEl.classList.add('negative');
+        else scoreEl.classList.remove('negative');
+
+        // Hide Actions & Inputs
+        card.classList.remove('show-actions');
+        card.classList.remove('show-wager');
     }
 }
