@@ -24,6 +24,7 @@ export class GameView {
                 <button id="remove-player-midgame-btn" class="utility-btn">- Player</button>
              </div>
              <div>
+                <button id="undo-btn" class="utility-btn" title="Undo Last Action" ${this.game.history.length === 0 ? 'disabled' : ''}>↩️</button>
                 <button id="settings-btn" class="settings-btn">⚙️</button>
                 <button id="prev-round-btn" class="utility-btn" ${this.game.round === 'Jeopardy' ? 'disabled' : ''}>Prev Round</button>
                 <button id="next-round-btn" class="utility-btn" ${this.game.round === 'Final' ? 'disabled' : ''}>Next Round</button>
@@ -39,12 +40,14 @@ export class GameView {
         ` : ''}
 
         <div class="info-banner" style="text-align:center; padding: 5px; color: gold; min-height: 24px;">
-            ${this.isDailyDouble ? 'DAILY DOUBLE - ENTER WAGER (Min: 5)' : (this.game.round === 'Final' ? 'FINAL JEOPARDY - ENTER WAGERS' : '')}
+            ${this._getBannerText()}
         </div>
 
         <div id="scoreboard" class="scoreboard">
           ${this._renderScoreboard()}
         </div>
+
+        ${this._renderPostGameControls()}
 
         ${this.isSettingsOpen ? this._renderSettingsModal() : ''}
       </div>
@@ -60,8 +63,42 @@ export class GameView {
 
         const banner = this.rootElement.querySelector('.info-banner');
         if (banner) {
-            banner.textContent = this.isDailyDouble ? 'DAILY DOUBLE - ENTER WAGER (Min: 5)' : (this.game.round === 'Final' ? 'FINAL JEOPARDY - ENTER WAGERS' : '');
+            banner.textContent = this._getBannerText();
+            // Add slight style variation for hint vs alert
+            if (this._getBannerText().includes('Select a clue')) {
+                banner.style.fontStyle = 'italic';
+                banner.style.fontSize = '0.9rem';
+            } else {
+                banner.style.fontStyle = 'normal';
+                banner.style.fontSize = '1rem';
+            }
         }
+
+        // Update Undo button state
+        const undoBtn = this.rootElement.querySelector('#undo-btn');
+        if (undoBtn) undoBtn.disabled = this.game.history.length === 0;
+
+        // Update Post Game Controls (Restart Button)
+        const existingControls = this.rootElement.querySelector('.post-game-controls');
+        if (existingControls) existingControls.remove();
+
+        const newControlsHTML = this._renderPostGameControls();
+        if (newControlsHTML) {
+            scoreboard.insertAdjacentHTML('afterend', newControlsHTML);
+            const startBtn = this.rootElement.querySelector('#start-new-game-btn');
+            if (startBtn) {
+                startBtn.addEventListener('click', () => {
+                    if (this.callbacks.onReset) this.callbacks.onReset();
+                });
+            }
+        }
+    }
+
+    _getBannerText() {
+        if (this.isDailyDouble) return 'DAILY DOUBLE - ENTER WAGER';
+        if (this.game.round === 'Final') return 'FINAL JEOPARDY - ENTER WAGERS';
+        // Hint text
+        return 'Select a clue. Long press for Daily Double.';
     }
 
     _renderSettingsModal() {
@@ -85,6 +122,23 @@ export class GameView {
           </div>
       </div>
       `;
+    }
+
+    _renderPostGameControls() {
+        // Show "Start New Game" button only if Final Jeopardy is complete
+        if (this.game.round === 'Final') {
+            const activePlayers = this.game.players.filter(p => !(!this.game.settings.mercyRule && p.score < 0));
+            const allAttempted = activePlayers.length > 0 && activePlayers.every(p => this.game.hasPlayerAttempted(p.id));
+
+            if (allAttempted) {
+                return `
+              <div class="post-game-controls" style="text-align: center; padding: 20px;">
+                  <button id="start-new-game-btn" class="btn-primary" style="background-color: #0d0; color: #fff;">Start New Game</button>
+              </div>
+              `;
+            }
+        }
+        return '';
     }
 
     _renderScoreboard() {
@@ -169,6 +223,25 @@ export class GameView {
             settingsBtn.addEventListener('click', () => {
                 this.isSettingsOpen = true;
                 this.render();
+            });
+        }
+
+        // Undo Button
+        const undoBtn = this.rootElement.querySelector('#undo-btn');
+        if (undoBtn) {
+            undoBtn.addEventListener('click', () => {
+                if (this.game.undo()) {
+                    this.refresh();
+                    this._notifyStateChange();
+                }
+            });
+        }
+
+        // Start New Game Button
+        const startNewBtn = this.rootElement.querySelector('#start-new-game-btn');
+        if (startNewBtn) {
+            startNewBtn.addEventListener('click', () => {
+                if (this.callbacks.onReset) this.callbacks.onReset();
             });
         }
 
@@ -270,7 +343,6 @@ export class GameView {
             this.selectedScoreValue = null;
         } else {
             this.selectedScoreValue = val;
-            // Clear previous attempts only when selecting a NEW clue from the board
             this.game.clearAttempts();
             this.game.setClueValue(val);
         }

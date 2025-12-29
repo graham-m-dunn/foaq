@@ -9,21 +9,39 @@ export class Game {
         this.settings = {
             mercyRule: true // Allow players with < 0 to play Final Jeopardy
         };
+        this.history = []; // History stack for Undo
+    }
+
+    saveState() {
+        // Deep clone state for history
+        const state = JSON.parse(JSON.stringify(this.serialize()));
+        this.history.push(state);
+        if (this.history.length > 20) this.history.shift(); // Limit history to last 20 actions
+    }
+
+    undo() {
+        if (this.history.length === 0) return false;
+        const previousState = this.history.pop();
+        this.restore(previousState);
+        return true;
     }
 
     setSetting(key, value) {
         if (key in this.settings) {
+            this.saveState();
             this.settings[key] = value;
         }
     }
 
     addPlayer(name) {
+        this.saveState();
         const player = new Player(name);
         this.players.push(player);
         return player;
     }
 
     removePlayer(playerId) {
+        this.saveState();
         this.players = this.players.filter(p => p.id !== playerId);
     }
 
@@ -31,6 +49,7 @@ export class Game {
         const player = this.players.find(p => p.id === playerId);
         if (!player) return;
 
+        this.saveState(); // Save before modifying score
         this.attemptedPlayers.add(playerId);
 
         if (correct) {
@@ -42,6 +61,8 @@ export class Game {
 
     setClueValue(value) {
         this.currentClueValue = value;
+        // Do not save state here; value selection is trivial. 
+        // We save on score update or round change.
     }
 
     clearAttempts() {
@@ -53,6 +74,7 @@ export class Game {
     }
 
     nextRound() {
+        this.saveState();
         if (this.round === 'Jeopardy') {
             this.round = 'Double';
         } else if (this.round === 'Double') {
@@ -63,6 +85,7 @@ export class Game {
     }
 
     previousRound() {
+        this.saveState();
         if (this.round === 'Final') {
             this.round = 'Double';
         } else if (this.round === 'Double') {
@@ -93,21 +116,24 @@ export class Game {
         };
     }
 
-    static deserialize(data) {
-        const game = new Game();
-        game.round = data.round;
-        game.currentClueValue = data.currentClueValue;
-        game.attemptedPlayers = new Set(data.attemptedPlayers);
-        if (data.settings) game.settings = data.settings;
+    restore(data) {
+        this.round = data.round;
+        this.currentClueValue = data.currentClueValue;
+        this.attemptedPlayers = new Set(data.attemptedPlayers);
+        if (data.settings) this.settings = data.settings;
 
         // Re-hydrate players
-        game.players = data.players.map(pData => {
+        this.players = data.players.map(pData => {
             const p = new Player(pData.name);
             p.id = pData.id;
             p.score = pData.score;
             return p;
         });
+    }
 
+    static deserialize(data) {
+        const game = new Game();
+        game.restore(data);
         return game;
     }
 }
