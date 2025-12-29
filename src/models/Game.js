@@ -74,4 +74,37 @@ export class Game {
         if (this.round === 'Double') return 2000;
         return 0;
     }
+
+    // Persistence
+    serialize() {
+        return {
+            players: this.players.map(p => ({
+                id: p.id,
+                name: p.name,
+                score: p.score
+            })),
+            round: this.round,
+            currentClueValue: this.currentClueValue,
+            attemptedPlayers: Array.from(this.attemptedPlayers),
+            settings: this.settings
+        };
+    }
+
+    static deserialize(data) {
+        const game = new Game();
+        game.round = data.round;
+        game.currentClueValue = data.currentClueValue;
+        game.attemptedPlayers = new Set(data.attemptedPlayers);
+        if (data.settings) game.settings = data.settings;
+
+        // Re-hydrate players
+        game.players = data.players.map(pData => {
+            const p = new Player(pData.name);
+            p.id = pData.id;
+            p.score = pData.score;
+            return p;
+        });
+
+        return game;
+    }
 }

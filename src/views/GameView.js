@@ -1,12 +1,17 @@
 export class GameView {
-    constructor(rootElement, game) {
+    constructor(rootElement, game, callbacks = {}) {
         this.rootElement = rootElement;
         this.game = game;
+        this.callbacks = callbacks;
         this.selectedScoreValue = null;
         this.isDailyDouble = false;
         this.isSettingsOpen = false;
         this.longPressTimer = null;
         this.longPressTriggered = false;
+    }
+
+    _notifyStateChange() {
+        if (this.callbacks.onStateChange) this.callbacks.onStateChange();
     }
 
     render() {
@@ -73,6 +78,9 @@ export class GameView {
                       <input type="checkbox" id="mercy-rule-toggle" ${this.game.settings.mercyRule ? 'checked' : ''}>
                       <span class="slider"></span>
                   </label>
+              </div>
+              <div style="margin-top: 20px; border-top: 1px solid #555; padding-top: 20px; text-align: center;">
+                  <button id="reset-game-btn" class="utility-btn" style="background-color: #600; border-color: #f00;">⚠️ Reset Game</button>
               </div>
           </div>
       </div>
@@ -148,6 +156,7 @@ export class GameView {
             const closeBtn = this.rootElement.querySelector('#close-settings-btn');
             const overlay = this.rootElement.querySelector('#settings-overlay');
             const toggle = this.rootElement.querySelector('#mercy-rule-toggle');
+            const resetBtn = this.rootElement.querySelector('#reset-game-btn');
 
             if (closeBtn) closeBtn.addEventListener('click', () => {
                 this.isSettingsOpen = false;
@@ -163,6 +172,13 @@ export class GameView {
 
             if (toggle) toggle.addEventListener('change', (e) => {
                 this.game.setSetting('mercyRule', e.target.checked);
+                this._notifyStateChange();
+            });
+
+            if (resetBtn) resetBtn.addEventListener('click', () => {
+                if (confirm("Are you sure you want to RESET the game? All scores will be lost.")) {
+                    if (this.callbacks.onReset) this.callbacks.onReset();
+                }
             });
         }
 
@@ -205,11 +221,13 @@ export class GameView {
         this.rootElement.querySelector('#next-round-btn').addEventListener('click', () => {
             this.game.nextRound();
             this._resetTurn();
+            this._notifyStateChange();
         });
 
         this.rootElement.querySelector('#prev-round-btn').addEventListener('click', () => {
             this.game.previousRound();
             this._resetTurn();
+            this._notifyStateChange();
         });
 
         this.rootElement.querySelector('#add-player-midgame-btn').addEventListener('click', () => {
@@ -217,6 +235,7 @@ export class GameView {
             if (name && name.trim()) {
                 this.game.addPlayer(name.trim());
                 this.refresh();
+                this._notifyStateChange();
             }
         });
 
@@ -233,6 +252,7 @@ export class GameView {
             this.selectedScoreValue = val;
             this.game.setClueValue(val);
         }
+        this._notifyStateChange();
         this.render();
     }
 
@@ -260,6 +280,7 @@ export class GameView {
                         this.game.removePlayer(id);
                         this.rootElement.classList.remove('delete-mode');
                         this.refresh();
+                        this._notifyStateChange();
                     }
                 }
             });
@@ -282,6 +303,7 @@ export class GameView {
 
         if (this.game.hasPlayerAttempted(playerId)) return;
         this.game.updateScore(playerId, correct);
+        this._notifyStateChange();
 
         // UI Handling
         if (this.isDailyDouble || this.game.round === 'Final') {
