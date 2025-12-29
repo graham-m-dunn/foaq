@@ -4,6 +4,7 @@ export class GameView {
         this.game = game;
         this.selectedScoreValue = null;
         this.isDailyDouble = false;
+        this.isSettingsOpen = false;
         this.longPressTimer = null;
         this.longPressTriggered = false;
     }
@@ -18,6 +19,7 @@ export class GameView {
                 <button id="remove-player-midgame-btn" class="utility-btn">- Player</button>
              </div>
              <div>
+                <button id="settings-btn" class="settings-btn">⚙️</button>
                 <button id="prev-round-btn" class="utility-btn" ${this.game.round === 'Jeopardy' ? 'disabled' : ''}>&lt; Prev</button>
                 <button id="next-round-btn" class="utility-btn" ${this.game.round === 'Final' ? 'disabled' : ''}>Next &gt;</button>
              </div>
@@ -38,6 +40,8 @@ export class GameView {
         <div id="scoreboard" class="scoreboard">
           ${this._renderScoreboard()}
         </div>
+
+        ${this.isSettingsOpen ? this._renderSettingsModal() : ''}
       </div>
     `;
 
@@ -55,6 +59,26 @@ export class GameView {
         }
     }
 
+    _renderSettingsModal() {
+        return `
+      <div class="modal-overlay" id="settings-overlay">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h3>Settings</h3>
+                  <button id="close-settings-btn" class="utility-btn">Close</button>
+              </div>
+              <div class="setting-row">
+                  <span>Mercy Rule (Allow < 0 in Final)</span>
+                  <label class="switch">
+                      <input type="checkbox" id="mercy-rule-toggle" ${this.game.settings.mercyRule ? 'checked' : ''}>
+                      <span class="slider"></span>
+                  </label>
+              </div>
+          </div>
+      </div>
+      `;
+    }
+
     _renderScoreboard() {
         const isClueActive = this.selectedScoreValue !== null;
         const isDailyDouble = this.isDailyDouble;
@@ -67,18 +91,25 @@ export class GameView {
         return this.game.players.map(p => {
             const hasAttempted = this.game.hasPlayerAttempted(p.id);
 
-            const showButtons = (isClueActive || isFinal) && !hasAttempted;
+            // Mercy Rule Logic
+            const isMercyDisabled = isFinal && p.score < 0 && !this.game.settings.mercyRule;
+
+            const showButtons = (isClueActive || isFinal) && !hasAttempted && !isMercyDisabled;
 
             // Max Wager Logic
             const roundMax = this.game.getRoundMax();
             const limit = p.score < roundMax ? roundMax : p.score;
             const placeholder = isFinal ? 'Wager' : `Max: $${limit}`;
 
+            const wagerVisible = showWager && !hasAttempted && !isMercyDisabled;
+
             return `
-      <div class="player-card ${showButtons ? 'show-actions' : ''} ${showWager && !hasAttempted ? 'show-wager' : ''}" data-id="${p.id}">
+      <div class="player-card ${showButtons ? 'show-actions' : ''} ${wagerVisible ? 'show-wager' : ''} ${isMercyDisabled ? 'disabled-card' : ''}" data-id="${p.id}">
         <div class="player-name">${p.name}</div>
         <div class="player-score ${p.score < 0 ? 'negative' : ''}">$${p.score}</div>
         
+        ${isMercyDisabled ? '<span class="mercy-message">No Mercy Rule selected</span>' : ''}
+
         <div class="wager-container">
             <input type="number" class="wager-input" data-id="${p.id}" placeholder="${placeholder}" min="0">
         </div>
@@ -103,6 +134,37 @@ export class GameView {
 
     _attachEventListeners() {
         this._attachScoreboardListeners();
+
+        // Settings Listeners
+        const settingsBtn = this.rootElement.querySelector('#settings-btn');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => {
+                this.isSettingsOpen = true;
+                this.render();
+            });
+        }
+
+        if (this.isSettingsOpen) {
+            const closeBtn = this.rootElement.querySelector('#close-settings-btn');
+            const overlay = this.rootElement.querySelector('#settings-overlay');
+            const toggle = this.rootElement.querySelector('#mercy-rule-toggle');
+
+            if (closeBtn) closeBtn.addEventListener('click', () => {
+                this.isSettingsOpen = false;
+                this.render();
+            });
+
+            if (overlay) overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    this.isSettingsOpen = false;
+                    this.render();
+                }
+            });
+
+            if (toggle) toggle.addEventListener('change', (e) => {
+                this.game.setSetting('mercyRule', e.target.checked);
+            });
+        }
 
         // Value Buttons (Long Press Logic)
         this.rootElement.querySelectorAll('.value-btn').forEach(btn => {

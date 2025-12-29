@@ -6,6 +6,15 @@ export class Game {
         this.round = 'Jeopardy'; // Jeopardy, Double, Final
         this.currentClueValue = 0;
         this.attemptedPlayers = new Set();
+        this.settings = {
+            mercyRule: true // Allow players with < 0 to play Final Jeopardy
+        };
+    }
+
+    setSetting(key, value) {
+        if (key in this.settings) {
+            this.settings[key] = value;
+        }
     }
 
     addPlayer(name) {
