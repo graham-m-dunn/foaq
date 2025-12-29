@@ -46,10 +46,23 @@ export class Game {
         } else if (this.round === 'Double') {
             this.round = 'Final';
         }
-        // Reset or adjust logic as needed for round transitions
+        this.currentClueValue = 0;
+        this.attemptedPlayers.clear();
     }
 
-    getPlayers() {
-        return this.players;
+    previousRound() {
+        if (this.round === 'Final') {
+            this.round = 'Double';
+        } else if (this.round === 'Double') {
+            this.round = 'Jeopardy';
+        }
+        this.currentClueValue = 0;
+        this.attemptedPlayers.clear();
+    }
+
+    getRoundMax() {
+        if (this.round === 'Jeopardy') return 1000;
+        if (this.round === 'Double') return 2000;
+        return 0;
     }
 }

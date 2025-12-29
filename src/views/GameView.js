@@ -2,8 +2,10 @@ export class GameView {
     constructor(rootElement, game) {
         this.rootElement = rootElement;
         this.game = game;
-        this.selectedPlayerId = null;
         this.selectedScoreValue = null;
+        this.isDailyDouble = false;
+        this.longPressTimer = null;
+        this.longPressTriggered = false;
     }
 
     render() {
@@ -21,10 +23,16 @@ export class GameView {
              </div>
         </div>
 
+        ${this.game.round !== 'Final' ? `
         <div class="controls-area">
           <div class="value-selector">
             ${this._renderValueButtons()}
           </div>
+        </div>
+        ` : ''}
+
+        <div class="info-banner" style="text-align:center; padding: 5px; color: gold; min-height: 24px;">
+            ${this.isDailyDouble ? 'DAILY DOUBLE - ENTER WAGER (Min: 5)' : (this.game.round === 'Final' ? 'FINAL JEOPARDY - ENTER WAGERS' : '')}
         </div>
 
         <div id="scoreboard" class="scoreboard">
@@ -40,19 +48,49 @@ export class GameView {
         const scoreboard = this.rootElement.querySelector('#scoreboard');
         if (scoreboard) scoreboard.innerHTML = this._renderScoreboard();
         this._attachScoreboardListeners();
+
+        const banner = this.rootElement.querySelector('.info-banner');
+        if (banner) {
+            banner.textContent = this.isDailyDouble ? 'DAILY DOUBLE - ENTER WAGER (Min: 5)' : (this.game.round === 'Final' ? 'FINAL JEOPARDY - ENTER WAGERS' : '');
+        }
     }
 
     _renderScoreboard() {
         const isClueActive = this.selectedScoreValue !== null;
+        const isDailyDouble = this.isDailyDouble;
+        const isFinal = this.game.round === 'Final';
+
+        // In Final Jeopardy, inputs are always shown.
+        // In Daily Double, inputs are shown if clue is active.
+        const showWager = isFinal || (isDailyDouble && isClueActive);
 
         return this.game.players.map(p => {
             const hasAttempted = this.game.hasPlayerAttempted(p.id);
-            const showButtons = isClueActive && !hasAttempted;
+
+            // Show action buttons logic:
+            // Normal: Clue Active AND Not Attempted
+            // Final/DD logic: Always show if "Clue Active" (which is true locally for wager)
+            // Actually per user requirement: "along with the correct/incorrect buttons"
+            // If Final Jeopardy: Always show buttons (allows recording result after inputs)
+            // If Daily Double: Show buttons if clue active.
+
+            let showButtons = (isClueActive || isFinal) && !hasAttempted;
+
+            // Calculate Max Wager
+            const roundMax = this.game.getRoundMax();
+            // Logic: If score < roundMax, play can bet up to roundMax. Else up to score.
+            const limit = p.score < roundMax ? roundMax : p.score;
+            const placeholder = isFinal ? 'Wager' : `Max: $${limit}`;
 
             return `
-      <div class="player-card ${showButtons ? 'show-actions' : ''}" data-id="${p.id}">
+      <div class="player-card ${showButtons ? 'show-actions' : ''} ${showWager ? 'show-wager' : ''}" data-id="${p.id}">
         <div class="player-name">${p.name}</div>
         <div class="player-score ${p.score < 0 ? 'negative' : ''}">$${p.score}</div>
+        
+        <div class="wager-container">
+            <input type="number" class="wager-input" data-id="${p.id}" placeholder="${placeholder}" min="0">
+        </div>
+
         <div class="inline-actions">
             <div class="btn-inline correct" data-action="correct" data-player-id="${p.id}">✓</div>
             <div class="btn-inline incorrect" data-action="incorrect" data-player-id="${p.id}">✗</div>
@@ -74,19 +112,51 @@ export class GameView {
     _attachEventListeners() {
         this._attachScoreboardListeners();
 
-        // Value Buttons
+        // Value Buttons (Long Press Logic)
         this.rootElement.querySelectorAll('.value-btn').forEach(btn => {
+            // Click Handling
             btn.addEventListener('click', (e) => {
+                if (this.longPressTriggered) return; // Prevent click after long press
+
                 const val = parseInt(e.target.dataset.value);
-                // Toggle value
-                if (this.selectedScoreValue === val) {
-                    this.selectedScoreValue = null;
-                } else {
-                    this.selectedScoreValue = val;
-                    this.game.setClueValue(val);
-                }
-                this.render();
+                this.isDailyDouble = false; // Reset DD on normal click
+                this._activateClue(val);
             });
+
+            // Long Press Handling
+            const startPress = (e) => {
+                this.longPressTriggered = false;
+                this.longPressTimer = setTimeout(() => {
+                    this.longPressTriggered = true;
+                    // Trigger Daily Double
+                    const val = parseInt(btn.dataset.value);
+                    this.isDailyDouble = true;
+                    this._activateClue(0); // Value 0 because user enters wager
+
+                    // Mobile vibration feedback
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }, 600); // 600ms threshold
+            };
+
+            const cancelPress = () => {
+                clearTimeout(this.longPressTimer);
+            };
+
+            btn.addEventListener('mousedown', startPress);
+            btn.addEventListener('touchstart', startPress);
+            btn.addEventListener('mouseup', cancelPress);
+            btn.addEventListener('mouseleave', cancelPress);
+            btn.addEventListener('touchend', cancelPress);
+        });
+
+        this.rootElement.querySelector('#next-round-btn').addEventListener('click', () => {
+            this.game.nextRound();
+            this._resetTurn();
+        });
+
+        this.rootElement.querySelector('#prev-round-btn').addEventListener('click', () => {
+            this.game.previousRound();
+            this._resetTurn();
         });
 
         this.rootElement.querySelector('#add-player-midgame-btn').addEventListener('click', () => {
@@ -99,29 +169,31 @@ export class GameView {
 
         this.rootElement.querySelector('#remove-player-midgame-btn').addEventListener('click', () => {
             const isDeleteMode = this.rootElement.classList.toggle('delete-mode');
-            if (isDeleteMode) {
-                alert("Select a player card to remove them.");
-            }
-        });
-
-        this.rootElement.querySelector('#next-round-btn').addEventListener('click', () => {
-            this.game.nextRound();
-            this.selectedScoreValue = null;
-            this.render();
-        });
-
-        this.rootElement.querySelector('#prev-round-btn').addEventListener('click', () => {
-            this.game.previousRound();
-            this.selectedScoreValue = null;
-            this.render();
+            if (isDeleteMode) alert("Select a player card to remove them.");
         });
     }
 
+    _activateClue(val) {
+        if (this.selectedScoreValue === val && !this.isDailyDouble && val !== 0) {
+            // Toggle off if same clicked (only for Normal)
+            this.selectedScoreValue = null;
+        } else {
+            this.selectedScoreValue = val;
+            this.game.setClueValue(val);
+        }
+        this.render();
+    }
+
+    _resetTurn() {
+        this.selectedScoreValue = null;
+        this.isDailyDouble = false;
+        this.render();
+    }
+
     _attachScoreboardListeners() {
-        // Inline Button Listeners
         this.rootElement.querySelectorAll('.btn-inline').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent card click
+                e.stopPropagation();
                 const playerId = e.currentTarget.dataset.playerId;
                 const isCorrect = e.currentTarget.dataset.action === 'correct';
                 this._handleScore(playerId, isCorrect);
@@ -131,28 +203,41 @@ export class GameView {
         this.rootElement.querySelectorAll('.player-card').forEach(card => {
             card.addEventListener('click', (e) => {
                 const id = e.currentTarget.dataset.id;
-
                 if (this.rootElement.classList.contains('delete-mode')) {
-                    if (confirm("Remove this player?")) {
+                    if (confirm("Remove player?")) {
                         this.game.removePlayer(id);
                         this.rootElement.classList.remove('delete-mode');
                         this.refresh();
                     }
-                    return;
                 }
             });
         });
     }
 
     _handleScore(playerId, correct) {
-        if (!this.selectedScoreValue) return;
-        if (this.game.hasPlayerAttempted(playerId)) return;
+        let points = this.selectedScoreValue;
 
+        // Daily Double or Final Jeopardy Wager Logic
+        if (this.isDailyDouble || this.game.round === 'Final') {
+            const input = this.rootElement.querySelector(`.wager-input[data-id="${playerId}"]`);
+            if (input && input.value !== '') {
+                points = parseInt(input.value);
+
+                // Basic Validation
+                const maxRound = this.game.getRoundMax();
+                // In final jeopardy, max is just current score (if positive)
+                // But DD max is score vs round max.
+                // Just accept input for now as "Trust User" logic is clearer than strict blocking without toast UI.
+            } else {
+                points = 0;
+            }
+            // Set temp clue value
+            this.game.setClueValue(points);
+        }
+
+        if (this.game.hasPlayerAttempted(playerId)) return;
         this.game.updateScore(playerId, correct);
 
-        // In "Play Along" mode, getting it right doesn't close the clue for others.
-        // The clue stays open until the user manually selects a new value.
-        // We just refresh to hide the buttons for THIS player (handled by _renderScoreboard logic).
         this.refresh();
     }
 }

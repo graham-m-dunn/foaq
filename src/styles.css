@@ -152,6 +152,29 @@ button:active {
   color: #ff4d4d;
 }
 
+/* Wager Input */
+.wager-container {
+  display: none;
+  margin: 5px 0;
+}
+
+.player-card.show-wager .wager-container {
+  display: flex;
+  justify-content: center;
+}
+
+.wager-input {
+  width: 80%;
+  padding: 5px;
+  font-size: 1.2rem;
+  text-align: center;
+  border: 2px solid var(--jeopardy-gold);
+  border-radius: 4px;
+  background: #000;
+  color: #fff;
+  font-weight: bold;
+}
+
 /* Inline Action Buttons */
 .inline-actions {
   display: none;
