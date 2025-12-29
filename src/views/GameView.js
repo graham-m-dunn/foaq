@@ -109,7 +109,6 @@ export class GameView {
 
             if (allAttempted) {
                 const maxScore = Math.max(...this.game.players.map(p => p.score));
-                // Only highlight winners if score > 0? No, highest score wins even if 0.
                 winnerIds = this.game.players.filter(p => p.score === maxScore).map(p => p.id);
             }
         }
@@ -367,11 +366,17 @@ export class GameView {
         card.classList.remove('show-actions');
         card.classList.remove('show-wager');
 
-        // If Final, check if we need to show Winners?
-        // Requires logic. Easier to just re-render in Final to show winner state.
-        // Optimization: if round is Final, full render after score.
+        // If Final, check if all players are done before full render (to show winner)
         if (this.game.round === 'Final') {
-            this.render();
+            const activePlayers = this.game.players.filter(p => {
+                if (!this.game.settings.mercyRule && p.score < 0) return false;
+                return true;
+            });
+            const allAttempted = activePlayers.length > 0 && activePlayers.every(p => this.game.hasPlayerAttempted(p.id));
+
+            if (allAttempted) {
+                this.render();
+            }
         }
     }
 }
