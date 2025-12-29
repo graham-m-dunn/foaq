@@ -150,14 +150,9 @@ export class GameView {
 
         this.game.updateScore(playerId, correct);
 
-        if (correct) {
-            // If correct, clue is dead. Reset flow.
-            this.selectedScoreValue = null;
-            this.game.setClueValue(0);
-            this.render(); // Full re-render to update value buttons and hide actions
-        } else {
-            // If incorrect, clue is still alive (others can guess).
-            this.refresh();
-        }
+        // In "Play Along" mode, getting it right doesn't close the clue for others.
+        // The clue stays open until the user manually selects a new value.
+        // We just refresh to hide the buttons for THIS player (handled by _renderScoreboard logic).
+        this.refresh();
     }
 }
