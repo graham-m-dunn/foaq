@@ -96,8 +96,27 @@ export class GameView {
         // In Daily Double, inputs are shown if clue is active.
         const showWager = isFinal || (isDailyDouble && isClueActive);
 
+        // Winner Calculation Logic (Final Jeopardy Only)
+        let winnerIds = [];
+        if (isFinal) {
+            const activePlayers = this.game.players.filter(p => {
+                if (!this.game.settings.mercyRule && p.score < 0) return false;
+                return true;
+            });
+
+            // Check if all active players have attempted the final clue
+            const allAttempted = activePlayers.length > 0 && activePlayers.every(p => this.game.hasPlayerAttempted(p.id));
+
+            if (allAttempted) {
+                const maxScore = Math.max(...this.game.players.map(p => p.score));
+                // Only highlight winners if score > 0? No, highest score wins even if 0.
+                winnerIds = this.game.players.filter(p => p.score === maxScore).map(p => p.id);
+            }
+        }
+
         return this.game.players.map(p => {
             const hasAttempted = this.game.hasPlayerAttempted(p.id);
+            const isWinner = winnerIds.includes(p.id);
 
             // Mercy Rule Logic
             const isMercyDisabled = isFinal && p.score < 0 && !this.game.settings.mercyRule;
@@ -112,7 +131,8 @@ export class GameView {
             const wagerVisible = showWager && !hasAttempted && !isMercyDisabled;
 
             return `
-      <div class="player-card ${showButtons ? 'show-actions' : ''} ${wagerVisible ? 'show-wager' : ''} ${isMercyDisabled ? 'disabled-card' : ''}" data-id="${p.id}">
+      <div class="player-card ${showButtons ? 'show-actions' : ''} ${wagerVisible ? 'show-wager' : ''} ${isMercyDisabled ? 'disabled-card' : ''} ${isWinner ? 'winner-card' : ''}" data-id="${p.id}">
+        ${isWinner ? '<div class="winner-crown">👑</div>' : ''}
         <div class="player-name">${p.name}</div>
         <div class="player-score ${p.score < 0 ? 'negative' : ''}">$${p.score}</div>
         
@@ -346,5 +366,12 @@ export class GameView {
         // Hide Actions & Inputs
         card.classList.remove('show-actions');
         card.classList.remove('show-wager');
+
+        // If Final, check if we need to show Winners?
+        // Requires logic. Easier to just re-render in Final to show winner state.
+        // Optimization: if round is Final, full render after score.
+        if (this.game.round === 'Final') {
+            this.render();
+        }
     }
 }

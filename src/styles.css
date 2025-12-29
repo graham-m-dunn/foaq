@@ -165,6 +165,8 @@ body {
   padding: 10px;
   text-align: center;
   transition: all 0.3s;
+  position: relative;
+  /* For crown absolute positioning */
 }
 
 .player-card.selected {
@@ -394,6 +396,34 @@ input:checked+.slider:before {
 .delete-mode .player-card {
   border-color: red;
   animation: shake 0.5s infinite;
+}
+
+/* Winner Styles */
+.player-card.winner-card {
+  border-color: #0f0;
+  box-shadow: 0 0 20px #0f0, inset 0 0 10px #0f0;
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+.winner-crown {
+  position: absolute;
+  top: -25px;
+  font-size: 2.5rem;
+  animation: bounce 1s infinite;
+  z-index: 20;
+}
+
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 @keyframes shake {
