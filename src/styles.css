@@ -133,6 +133,13 @@ button:active {
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
+.value-btn.active {
+  border-color: #fff;
+  background-color: var(--jeopardy-gold);
+  color: var(--jeopardy-blue);
+  box-shadow: 0 0 10px var(--jeopardy-gold);
+}
+
 .player-score {
   font-size: 2.5rem;
   font-weight: bold;
