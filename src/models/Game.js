@@ -5,6 +5,7 @@ export class Game {
         this.players = [];
         this.round = 'Jeopardy'; // Jeopardy, Double, Final
         this.currentClueValue = 0;
+        this.attemptedPlayers = new Set();
     }
 
     addPlayer(name) {
@@ -21,6 +22,8 @@ export class Game {
         const player = this.players.find(p => p.id === playerId);
         if (!player) return;
 
+        this.attemptedPlayers.add(playerId);
+
         if (correct) {
             player.addScore(this.currentClueValue);
         } else {
@@ -30,6 +33,11 @@ export class Game {
 
     setClueValue(value) {
         this.currentClueValue = value;
+        this.attemptedPlayers.clear();
+    }
+
+    hasPlayerAttempted(playerId) {
+        return this.attemptedPlayers.has(playerId);
     }
 
     nextRound() {

@@ -43,10 +43,14 @@ export class GameView {
     }
 
     _renderScoreboard() {
-        const showActions = this.selectedScoreValue !== null;
+        const isClueActive = this.selectedScoreValue !== null;
 
-        return this.game.players.map(p => `
-      <div class="player-card ${showActions ? 'show-actions' : ''}" data-id="${p.id}">
+        return this.game.players.map(p => {
+            const hasAttempted = this.game.hasPlayerAttempted(p.id);
+            const showButtons = isClueActive && !hasAttempted;
+
+            return `
+      <div class="player-card ${showButtons ? 'show-actions' : ''}" data-id="${p.id}">
         <div class="player-name">${p.name}</div>
         <div class="player-score ${p.score < 0 ? 'negative' : ''}">$${p.score}</div>
         <div class="inline-actions">
@@ -54,7 +58,7 @@ export class GameView {
             <div class="btn-inline incorrect" data-action="incorrect" data-player-id="${p.id}">✗</div>
         </div>
       </div>
-    `).join('');
+    `}).join('');
     }
 
     _renderValueButtons() {
@@ -142,6 +146,7 @@ export class GameView {
 
     _handleScore(playerId, correct) {
         if (!this.selectedScoreValue) return;
+        if (this.game.hasPlayerAttempted(playerId)) return;
 
         this.game.updateScore(playerId, correct);
 
