@@ -18,15 +18,15 @@ export class GameView {
         this.rootElement.innerHTML = `
       <div class="game-container">
         <div class="utility-bar">
-             <span>${this.game.round} Round</span>
+             <span>Round: ${this.game.round === 'Jeopardy' ? 'Jeopardy' : this.game.round + ' Jeopardy'}</span>
              <div class="roster-controls">
                 <button id="add-player-midgame-btn" class="utility-btn">+ Player</button>
                 <button id="remove-player-midgame-btn" class="utility-btn">- Player</button>
              </div>
              <div>
                 <button id="settings-btn" class="settings-btn">⚙️</button>
-                <button id="prev-round-btn" class="utility-btn" ${this.game.round === 'Jeopardy' ? 'disabled' : ''}>&lt; Prev</button>
-                <button id="next-round-btn" class="utility-btn" ${this.game.round === 'Final' ? 'disabled' : ''}>Next &gt;</button>
+                <button id="prev-round-btn" class="utility-btn" ${this.game.round === 'Jeopardy' ? 'disabled' : ''}>Prev Round</button>
+                <button id="next-round-btn" class="utility-btn" ${this.game.round === 'Final' ? 'disabled' : ''}>Next Round</button>
              </div>
         </div>
 
