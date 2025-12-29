@@ -4,7 +4,8 @@
   --jeopardy-dark-blue: #00008b;
   --text-white: #FFFFFF;
   --bg-color: #000000;
-  --font-family: 'Swiss 911', 'Segoe UI', sans-serif; /* "Swiss 911" is close to Jeopardy font */
+  --font-family: 'Swiss 911', 'Segoe UI', sans-serif;
+  /* "Swiss 911" is close to Jeopardy font */
 }
 
 body {
@@ -29,7 +30,9 @@ body {
   box-sizing: border-box;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   text-align: center;
   color: var(--text-white);
   text-shadow: 2px 2px 4px #000;
@@ -87,55 +90,11 @@ button:active {
   gap: 10px;
 }
 
-.scoreboard {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 10px;
-  flex: 1;
-  align-items: center; /* Center vertically */
-}
-
-.player-card {
-  background: var(--jeopardy-blue);
-  border: 2px solid var(--jeopardy-gold);
-  padding: 15px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  height: 100%;
-  box-sizing: border-box;
-  position: relative;
-}
-
-.player-card.selected {
-    box-shadow: 0 0 15px 5px #fff;
-    border-color: #fff;
-    transform: scale(1.02);
-    z-index: 10;
-}
-
-.player-name {
-  font-size: 1.2rem;
-  margin-bottom: 10px;
-  text-shadow: 1px 1px 2px black;
-}
-
-.player-score {
-  font-size: 2rem;
-  font-weight: bold;
-  color: var(--jeopardy-gold);
-  text-shadow: 2px 2px 2px black;
-}
-
-.player-score.negative {
-  color: #ff4d4d;
-}
-
 .controls-area {
   background: #222;
-  padding: 15px;
-  border-top: 2px solid var(--jeopardy-gold);
+  padding: 10px;
+  border-bottom: 2px solid var(--jeopardy-gold);
+  /* Moving to top, so border-bottom instead of top */
 }
 
 .value-selector {
@@ -143,58 +102,95 @@ button:active {
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 15px;
 }
 
-.value-btn {
-  background-color: var(--jeopardy-blue);
-  color: var(--jeopardy-gold);
-  font-size: 1.5rem;
-  padding: 10px 15px;
-  border: 2px solid transparent;
+.scoreboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  flex: 1;
+  align-items: center;
+  overflow-y: auto;
 }
 
-.value-btn.active {
-  border-color: #fff;
-  background-color: var(--jeopardy-dark-blue);
-}
-
-.action-buttons {
+.player-card {
+  background: var(--jeopardy-blue);
+  border: 2px solid var(--jeopardy-gold);
+  padding: 10px;
+  text-align: center;
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  gap: 20px;
-  min-height: 60px; /* Reserve space */
+  height: 100%;
+  box-sizing: border-box;
+  position: relative;
+  transition: all 0.2s;
 }
 
-.btn-correct {
+.player-card.active-turn {
+  background: var(--jeopardy-dark-blue);
+  border-color: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.player-score {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: var(--jeopardy-gold);
+  text-shadow: 2px 2px 2px black;
+  margin: 10px 0;
+}
+
+.player-score.negative {
+  color: #ff4d4d;
+}
+
+/* Inline Action Buttons */
+.inline-actions {
+  display: none;
+  /* Hidden by default */
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.player-card.show-actions .inline-actions {
+  display: flex;
+}
+
+.btn-inline {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  border: 2px solid white;
+}
+
+.btn-inline.correct {
   background-color: #28a745;
-  color: white;
-  padding: 10px 30px;
-  font-size: 1.5rem;
-  display: none; /* Hidden until player selected */
 }
 
-.btn-incorrect {
+.btn-inline.incorrect {
   background-color: #dc3545;
-  color: white;
-  padding: 10px 30px;
-  font-size: 1.5rem;
-  display: none; /* Hidden until player selected */
 }
 
-.btn-correct.visible, .btn-incorrect.visible {
-  display: inline-block;
-}
-
+/* Utility Bar */
 .utility-bar {
-    display: flex;
-    justify-content: space-between;
-    padding: 5px;
+  display: flex;
+  justify-content: space-between;
+  padding: 5px;
+  background: #111;
 }
 
 .utility-btn {
-    background: #444;
-    color: #ccc;
-    font-size: 0.8rem;
-    padding: 5px 10px;
+  background: #444;
+  color: #ccc;
+  font-size: 0.8rem;
+  padding: 5px 10px;
 }
