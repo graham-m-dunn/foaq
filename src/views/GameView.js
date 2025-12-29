@@ -67,7 +67,6 @@ export class GameView {
         return this.game.players.map(p => {
             const hasAttempted = this.game.hasPlayerAttempted(p.id);
 
-            // Buttons always show in Final Jeopardy if not attempted, or if generic active
             const showButtons = (isClueActive || isFinal) && !hasAttempted;
 
             // Max Wager Logic
@@ -124,7 +123,7 @@ export class GameView {
                     // Trigger Daily Double
                     const val = parseInt(btn.dataset.value);
                     this.isDailyDouble = true;
-                    this._activateClue(0); // Value 0 because user enters wager
+                    this._activateClue(0);
 
                     if (navigator.vibrate) navigator.vibrate(50);
                 }, 600);
@@ -167,7 +166,6 @@ export class GameView {
 
     _activateClue(val) {
         if (this.selectedScoreValue === val && !this.isDailyDouble && val !== 0) {
-            // Toggle off if same clicked (only for Normal)
             this.selectedScoreValue = null;
         } else {
             this.selectedScoreValue = val;
@@ -224,15 +222,10 @@ export class GameView {
         this.game.updateScore(playerId, correct);
 
         // UI Handling
-        if (this.isDailyDouble) {
-            // Daily Double: Complete Reset
-            this.isDailyDouble = false;
-            this.selectedScoreValue = null;
-            this.game.setClueValue(0);
-            this.render();
-        }
-        else if (this.game.round === 'Final') {
-            // Final: Partial update to preserve other inputs
+        if (this.isDailyDouble || this.game.round === 'Final') {
+            // Daily Double & Final Jeopardy:
+            // Do NOT full reset. Keep mode active so others can answer/wager.
+            // Update just this card to hide buttons/update score.
             this._updateCardDOM(playerId);
         }
         else {
