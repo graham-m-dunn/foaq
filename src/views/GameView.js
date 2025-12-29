@@ -270,6 +270,8 @@ export class GameView {
             this.selectedScoreValue = null;
         } else {
             this.selectedScoreValue = val;
+            // Clear previous attempts only when selecting a NEW clue from the board
+            this.game.clearAttempts();
             this.game.setClueValue(val);
         }
         this._notifyStateChange();
@@ -330,6 +332,7 @@ export class GameView {
             } else {
                 points = 0;
             }
+            // Set clue value safely (doesn't clear attempts)
             this.game.setClueValue(points);
         }
 
@@ -340,12 +343,10 @@ export class GameView {
         // UI Handling
         if (this.isDailyDouble || this.game.round === 'Final') {
             // Daily Double & Final Jeopardy:
-            // Do NOT full reset. Keep mode active so others can answer/wager.
-            // Update just this card to hide buttons/update score.
             this._updateCardDOM(playerId);
         }
         else {
-            // Normal: Partial update to hide buttons
+            // Normal: Partial update
             this._updateCardDOM(playerId);
         }
     }

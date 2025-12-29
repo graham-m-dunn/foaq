@@ -42,6 +42,9 @@ export class Game {
 
     setClueValue(value) {
         this.currentClueValue = value;
+    }
+
+    clearAttempts() {
         this.attemptedPlayers.clear();
     }
 
