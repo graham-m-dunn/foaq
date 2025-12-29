@@ -34,16 +34,12 @@ export class GameView {
     `;
 
         this._attachEventListeners();
-        this._updateUIState();
     }
 
     refresh() {
-        // Re-render scoreboard only or full re-render
-        // For simplicity, just update the scoreboard HTML
         const scoreboard = this.rootElement.querySelector('#scoreboard');
         if (scoreboard) scoreboard.innerHTML = this._renderScoreboard();
         this._attachScoreboardListeners();
-        this._updateUIState();
     }
 
     _renderScoreboard() {
@@ -78,6 +74,7 @@ export class GameView {
         this.rootElement.querySelectorAll('.value-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const val = parseInt(e.target.dataset.value);
+                // Toggle value
                 if (this.selectedScoreValue === val) {
                     this.selectedScoreValue = null;
                 } else {
@@ -88,7 +85,6 @@ export class GameView {
             });
         });
 
-        // Setup/Roster logic
         this.rootElement.querySelector('#add-player-midgame-btn').addEventListener('click', () => {
             const name = prompt("Enter new player name:");
             if (name && name.trim()) {
@@ -116,48 +112,47 @@ export class GameView {
             this.render();
         });
     }
-}
 
-_attachScoreboardListeners() {
-    this.rootElement.querySelectorAll('.btn-inline').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const playerId = e.currentTarget.dataset.playerId;
-            const isCorrect = e.currentTarget.dataset.action === 'correct';
-            this._handleScore(playerId, isCorrect);
+    _attachScoreboardListeners() {
+        // Inline Button Listeners
+        this.rootElement.querySelectorAll('.btn-inline').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent card click
+                const playerId = e.currentTarget.dataset.playerId;
+                const isCorrect = e.currentTarget.dataset.action === 'correct';
+                this._handleScore(playerId, isCorrect);
+            });
         });
-    });
 
-    this.rootElement.querySelectorAll('.player-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-            const id = e.currentTarget.dataset.id;
-            if (this.rootElement.classList.contains('delete-mode')) {
-                if (confirm("Remove this player?")) {
-                    this.game.removePlayer(id);
-                    this.rootElement.classList.remove('delete-mode');
-                    this.refresh();
+        this.rootElement.querySelectorAll('.player-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id;
+
+                if (this.rootElement.classList.contains('delete-mode')) {
+                    if (confirm("Remove this player?")) {
+                        this.game.removePlayer(id);
+                        this.rootElement.classList.remove('delete-mode');
+                        this.refresh();
+                    }
+                    return;
                 }
-                return;
-            }
+            });
         });
-    });
-}
-
-_handleScore(playerId, correct) {
-    if (!this.selectedScoreValue) return;
-
-    this.game.updateScore(playerId, correct);
-
-    if (correct) {
-        this.selectedScoreValue = null;
-        this.game.setClueValue(0);
-        this.render();
-    } else {
-        this.refresh();
     }
-}
 
-_updateUIState() {
-    // Deprecated
-}
+    _handleScore(playerId, correct) {
+        if (!this.selectedScoreValue) return;
+
+        this.game.updateScore(playerId, correct);
+
+        if (correct) {
+            // If correct, clue is dead. Reset flow.
+            this.selectedScoreValue = null;
+            this.game.setClueValue(0);
+            this.render(); // Full re-render to update value buttons and hide actions
+        } else {
+            // If incorrect, clue is still alive (others can guess).
+            this.refresh();
+        }
+    }
 }
