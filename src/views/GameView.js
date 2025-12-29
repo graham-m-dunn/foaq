@@ -120,6 +120,7 @@ export class GameView {
 
         <div class="wager-container">
             <input type="number" class="wager-input" data-id="${p.id}" placeholder="${placeholder}" min="0">
+            <button class="max-wager-btn" data-id="${p.id}" data-max="${limit}">Max</button>
         </div>
 
         <div class="inline-actions">
@@ -282,6 +283,18 @@ export class GameView {
                         this.refresh();
                         this._notifyStateChange();
                     }
+                }
+            });
+        });
+
+        this.rootElement.querySelectorAll('.max-wager-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = e.currentTarget.dataset.id;
+                const max = e.currentTarget.dataset.max;
+                const input = this.rootElement.querySelector(`.wager-input[data-id="${id}"]`);
+                if (input) {
+                    input.value = max;
                 }
             });
         });

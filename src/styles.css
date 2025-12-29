@@ -194,11 +194,13 @@ body {
 .wager-container {
   display: none;
   margin: 5px 0;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
 }
 
 .player-card.show-wager .wager-container {
   display: flex;
-  justify-content: center;
 }
 
 .player-card.show-wager.disabled-card .wager-container {
@@ -207,7 +209,7 @@ body {
 }
 
 .wager-input {
-  width: 80%;
+  width: 60%;
   padding: 5px;
   font-size: 1.2rem;
   text-align: center;
@@ -216,6 +218,22 @@ body {
   background: #000;
   color: #fff;
   font-weight: bold;
+}
+
+.max-wager-btn {
+  background-color: var(--jeopardy-gold);
+  color: var(--jeopardy-blue);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.max-wager-btn:hover {
+  background-color: #fff;
+  color: var(--jeopardy-blue);
 }
 
 /* Inline Action Buttons */
