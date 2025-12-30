@@ -1,6 +1,6 @@
 # FOAQ - Jeopardy Tracker
 
-[**Live Demo**](https://graham-m-dunn.github.io/foaq/)
+[**Live Demo**](https://foaq.kurai.org/)
 
 ## Overview
 FOAQ (Form Of A Question) is a vanilla JS Progressive Web App for tracking Jeopardy! scores. It allows you to play along with the show, tracking scores for multiple people in the room.
